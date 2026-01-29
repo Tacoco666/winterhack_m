@@ -1,21 +1,13 @@
 # WinterHack
-WinterHack Challenge is an annual, robotics-focused, challenge-based learning event hosted at Queen Mary University of London (QMUL). The 2026 theme, "Operation Rescue: Search, Locate and Retrieve", tasks teams with building a fully autonomous mobile robot (AMR) that explores an unknown maze, detects coloured objects, retrieves them with a robotic arm, and returns safely to the start location.
+The WinterHack Challenge is an annual robotics-centric learning competition organized by Queen Mary University of London (QMUL). For its 2026 edition, under the theme "Operation Rescue: Search, Locate and Retrieve", participating teams are tasked with engineering a fully autonomous mobile robot (AMR) capable of exploring uncharted maze environments, identifying objects based on color cues, retrieving target items via a robotic arm, and navigating back to its initial deployment point without human intervention.
 
-This repository provides the official WinterHack ROS2 workspace, serving as the shared technical foundation for simulation, real-robot development, and the final on-site challenge. It is a WinterHack-specific, streamlined version, significantly reduced from the generic development repository: https://github.com/jonaloo19/ros2_humble_landerpi
+This repository features the official ROS2 development workspace designed exclusively for WinterHack. It serves as the foundational technical backbone supporting three key pillars: virtual simulation testing, hardware development for physical robots, and the on-site finals of the challenge. Unlike the comprehensive, general-use development repository (accessible at https://github.com/jonaloo19/ros2_humble_landerpi), this version has been extensively refactored and streamlined to align precisely with WinterHack’s unique requirements and use cases.
 
-## WinterHack's robot
-*Add robot hardware/visual description here (e.g., photo/Gazebo render) if available*
-
-## Ubuntu GPU guides
-This section provides setup guides for Ubuntu (22.04) GPU configurations in dual-boot and WSL2 environments to ensure Gazebo and ROS2 run with hardware acceleration.
-
-- `ubuntu_gpu_guide/dual-boot-nvidia`: Ubuntu 22.04 dual-boot with Windows 11, native NVIDIA driver install, GPU acceleration checks, PRIME/hybrid graphics validation, and Gazebo launch guidance.
-- `ubuntu_gpu_guide/windows-wsl-nvidia`: Ubuntu 22.04 on Windows 11 via WSL2, NVIDIA GPU passthrough with Mesa D3D12 setup, persistent GPU config, and a recommended Windows/WSL workflow.
 
 ## Install flow
 Clone this repo (contains the install scripts and the ros2_ws workspace):
 ```bash
-git clone https://github.com/jonaloo19/winterhack.git
+git clone https://github.com/Tacoco666/winterhack_m.git
 cd winterhack
 ```
 Install ROS2 Humble (skips if already present):
@@ -54,14 +46,14 @@ Launches the `robocup_home` world to exercise the WinterHack base/arm manipulati
 ```bash
 ros2 launch robot_gazebo worlds.launch.py world_name:=robocup_home
 ```
-Demo video (robocup_home): [video1.mp4](./media/video1.mp4)
+
 
 #### WinterHack Maze (Full AMR Stack Test)
 Launches the `winterhack_maze` world to exercise the full WinterHack AMR stack: navigation, base/arm manipulation, and the mission runner driving the search → locate → pick → retrieve → drop workflow.
 ```bash
 ros2 launch robot_gazebo worlds.launch.py world_name:=winterhack_maze
 ```
-Demo video (winterhack_maze): [video2.mp4](./media/video2.mp4)
+
 
 ### Launch WinterHack Core Stack
 This launch brings up SLAM Toolbox, Nav2, MoveIt2, and the WinterHack ROS nodes/action servers for colour detection, locate, pick, and drop (compatible with all challenge modes).
@@ -117,11 +109,8 @@ ros2 launch winterhack winterhack.launch.py challenge_mode:=challenge1
 ros2 run winterhack mission_runner --ros-args -p challenge_mode:=challenge1
 ```
 #### Demo Video (Challenge 1)
-<p align="center">
-  <video width="800" controls>
-    <source src="./media/demo1.mp4" type="video/mp4">
-    Your browser does not support the video tag. Download the video: <a href="./media/demo1.mp4">challenge1_demo.mp4</a>
-  </video>
+
+[demo1.mp4](media/demo1.mp4)
 </p>
 *Demo Notes: The video demonstrates the robot completing efficient rescue of RED/BLUE/YELLOW blocks from pre-defined coordinates, with optimised path planning and task sequencing.*
 
@@ -147,11 +136,8 @@ ros2 launch winterhack winterhack.launch.py challenge_mode:=challenge2
 ros2 run winterhack mission_runner --ros-args -p challenge_mode:=challenge2
 ```
 #### Demo Video (Challenge 2)
-<p align="center">
-  <video width="800" controls>
-    <source src="./media/demo2.mp4" type="video/mp4">
-    Your browser does not support the video tag. Download the video: <a href="./media/demo2.mp4">challenge2_demo.mp4</a>
-  </video>
+
+[demo2.mp4](media/demo2.mp4)
 </p>
 *Demo Notes: The video shows the robot autonomously searching for randomly distributed blocks, adhering to the RED→BLUE→YELLOW priority order, with robust state management and decision-making.*
 

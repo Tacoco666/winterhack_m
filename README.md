@@ -1,146 +1,179 @@
-# winterhack_m
-This project is a complete ROS2-based development and simulation framework for the LanderPi mobile manipulator, tailored for WinterHack competition development and verification of mobile manipulator-related tasks.
+# WinterHack
+WinterHack Challenge is an annual, robotics-focused, challenge-based learning event hosted at Queen Mary University of London (QMUL). The 2026 theme, "Operation Rescue: Search, Locate and Retrieve", tasks teams with building a fully autonomous mobile robot (AMR) that explores an unknown maze, detects coloured objects, retrieves them with a robotic arm, and returns safely to the start location.
 
-## 1. Directory Structure
-```
-winterhack_m/
-├── .typerc                      # Typo syntax check configuration file
-├── 0_kill_all.sh                # One-click termination of all ROS2 nodes/simulation processes
-├── 1_start_gazebo.sh            # Launch Gazebo simulation environment
-├── 2_start_winterhack.sh        # Launch WinterHack core function modules
-├── 3_start_challenge2.sh        # Launch Challenge 2 task process
-├── 4_start_challenge1.sh        # Launch Challenge 1 task process
-├── diagnose_and_fix.sh          # Environment diagnosis and automatic repair script
-├── src/                         # ROS2 package source code directory
-│   ├── costmap_converter        # Cost map conversion (adapted to path planner)
-│   ├── holonomic_sim            # Holonomic mobile robot simulation and control
-│   ├── landerpi_description     # Robot URDF model/joint/sensor definition
-│   ├── robot_gazebo             # Gazebo simulation scene/model loading configuration
-│   ├── teb_local_planner        # TEB local path planner
-│   ├── trac_ik                  # TRAC-IK inverse kinematics solution library
-│   ├── winterhack               # Competition core logic (task scheduling/data processing/control)
-│   └── winterhack_interfaces    # Custom ROS2 interfaces (messages/services/actions)
-└── README.md                    # Project documentation
-```
+This repository provides the official WinterHack ROS2 workspace, serving as the shared technical foundation for simulation, real-robot development, and the final on-site challenge. It is a WinterHack-specific, streamlined version, significantly reduced from the generic development repository: https://github.com/jonaloo19/ros2_humble_landerpi
 
-## 2. Environmental Dependencies
-### 2.1 Basic Environment
-- Operating System: Ubuntu 22.04 LTS (recommended)
-- ROS2 Version: Humble Hawksbill (compatible with all packages in the workspace)
+## WinterHack's robot
+*Add robot hardware/visual description here (e.g., photo/Gazebo render) if available*
 
-### 2.2 Dependency Installation
+## Ubuntu GPU guides
+This section provides setup guides for Ubuntu (22.04) GPU configurations in dual-boot and WSL2 environments to ensure Gazebo and ROS2 run with hardware acceleration.
+
+- `ubuntu_gpu_guide/dual-boot-nvidia`: Ubuntu 22.04 dual-boot with Windows 11, native NVIDIA driver install, GPU acceleration checks, PRIME/hybrid graphics validation, and Gazebo launch guidance.
+- `ubuntu_gpu_guide/windows-wsl-nvidia`: Ubuntu 22.04 on Windows 11 via WSL2, NVIDIA GPU passthrough with Mesa D3D12 setup, persistent GPU config, and a recommended Windows/WSL workflow.
+
+## Install flow
+Clone this repo (contains the install scripts and the ros2_ws workspace):
 ```bash
-# Install ROS2 basic dependencies
-sudo apt update && sudo apt install -y \
-  ros-humble-gazebo-ros-pkgs \
-  ros-humble-teb-local-planner \
-  ros-humble-trac-ik \
-  ros-humble-urdf-tutorial
-
-# Install build tools
-sudo apt install -y python3-colcon-common-extensions python3-pip
+git clone https://github.com/jonaloo19/winterhack.git
+cd winterhack
 ```
-
-## 3. Quick Start
-### 3.1 Clone the Repository
+Install ROS2 Humble (skips if already present):
 ```bash
-git clone <your-repository-url> winterhack_m
-cd winterhack_m
+chmod +x install_ros2_humble.sh
+./install_ros2_humble.sh
 ```
-
-### 3.2 Build the Workspace
+Install dependencies, copy the workspace to `~/ros2_ws`, and build:
 ```bash
-# Install package dependencies
-rosdep install --from-paths src --ignore-src -r -y
+chmod +x install_gazebo_landerpi.sh
+./install_gazebo_landerpi.sh
+```
+This script installs the ROS2 + Gazebo tooling needed for simulation and navigation, copies the provided workspace into `~/ros2_ws`, builds it, and updates `~/.bashrc` with the workspace and Gazebo resource paths (plus a CPU-render fallback you can disable for GPU rendering).
 
-# Compile the workspace (--symlink-install avoids repeated compilation)
+After running, open a new terminal (or `source ~/.bashrc`) to load the environment.
+
+## Workspace highlights (ros2_ws/src)
+- `winterhack`: main package with mission logic and nodes (detect/locate/pick/drop), launch files, configs, maps, URDF, and RViz setup (includes Challenge 1/2 mission logic).
+- `winterhack_interfaces`: action definitions for Pick, Drop, and Locate (extended for Challenge 2 priority ordering).
+- `robot_gazebo`: Gazebo worlds and launch files (including `winterhack_maze`, `challenge1_world`, `challenge2_world`), models, and sim configs.
+- `landerpi_description`: robot description package (URDF + meshes) used by Gazebo/RViz.
+- `holonomic_sim`: holonomic base simulation plugin and test world used by the sim stack.
+- `costmap_converter`, `teb_local_planner`, `trac_ik`: upstream nav/IK dependencies needed by the navigation and manipulation stack.
+
+## Manual Workspace (ros2_ws) build
+Use the provided colcon build command when you need to rebuild the workspace manually (for example, after developing a custom ROS application for challenges). Run:
+```bash
+cd ~/ros2_ws
 colcon build --symlink-install
-
-# Load workspace environment (execute in every new terminal)
-source install/setup.bash
 ```
 
-### 3.3 Run Simulation/Tasks
-#### 3.3.1 Basic Simulation Launch
+## Running WinterHack Core Demos
+### Launch Gazebo Base Worlds
+#### Robocup Home (Base Manipulation Test)
+Launches the `robocup_home` world to exercise the WinterHack base/arm manipulation workflow (locate, pick, drop).
 ```bash
-# Step 1: Launch Gazebo simulation environment (Terminal 1)
-./1_start_gazebo.sh
-
-# Step 2: Launch WinterHack core functions (Terminal 2, source environment first)
-source install/setup.bash
-./2_start_winterhack.sh
+ros2 launch robot_gazebo worlds.launch.py world_name:=robocup_home
 ```
+Demo video (robocup_home): [video1.mp4](./media/video1.mp4)
 
-#### 3.3.2 Launch Specified Challenge Tasks
+#### WinterHack Maze (Full AMR Stack Test)
+Launches the `winterhack_maze` world to exercise the full WinterHack AMR stack: navigation, base/arm manipulation, and the mission runner driving the search → locate → pick → retrieve → drop workflow.
 ```bash
-# Launch Challenge 1 (Terminal 3)
-source install/setup.bash
-./4_start_challenge1.sh
-
-# Launch Challenge 2 (Terminal 3)
-source install/setup.bash
-./3_start_challenge2.sh
+ros2 launch robot_gazebo worlds.launch.py world_name:=winterhack_maze
 ```
+Demo video (winterhack_maze): [video2.mp4](./media/video2.mp4)
 
-#### 3.3.3 Terminate All Processes
+### Launch WinterHack Core Stack
+This launch brings up SLAM Toolbox, Nav2, MoveIt2, and the WinterHack ROS nodes/action servers for colour detection, locate, pick, and drop (compatible with all challenge modes).
 ```bash
-./0_kill_all.sh
+ros2 launch winterhack winterhack.launch.py
 ```
+**Note:**
+- `robot_mode:=sim` (default) uses `use_sim_time` (default true, `/clock`) and keeps the Gazebo control path for MoveIt; navigation outputs to `/controller/cmd_vel`.
+- `robot_mode:=real` forces `use_sim_time:=false`, disables the Gazebo control path, enables real controllers, and publishes `/cmd_vel`.
 
-### 3.4 Environment Diagnosis and Repair
-If you encounter compilation failures, missing dependencies, simulation exceptions, etc., execute one-click diagnosis and repair:
+### Mission Runner (Core Navigation + Manipulation)
+Runs the end-to-end mission loop by coordinating navigation and manipulation: it searches for colour objects, locates the object, performs pick, retrieves, and drops (compatible with challenge-specific configs).
 ```bash
-./diagnose_and_fix.sh
+ros2 run winterhack mission_runner
 ```
+**Note:** Requires WinterHack bringup running (via `winterhack.launch.py`).
 
-## 4. Core Package Description
-| Package Name              | Core Functions                                                                 |
-|---------------------------|--------------------------------------------------------------------------------|
-| costmap_converter         | Cost map format conversion, raster map to polygon, adapt to TEB planner input  |
-| holonomic_sim             | Holonomic robot kinematics solution, speed command parsing, simulation status feedback |
-| landerpi_description      | Robot URDF model definition, joint limit configuration, laser/camera sensor mounting |
-| robot_gazebo              | Gazebo world scene configuration, robot model loading, simulation plugin (e.g., odometry/contact sensor) configuration |
-| teb_local_planner         | Time Elastic Band-based local path planning, supporting obstacle avoidance and motion optimization for non-holonomic constrained robots |
-| trac_ik                   | High-precision inverse kinematics solution library, providing solution support for robot joint control |
-| winterhack                | Competition core logic: state machine management, sensor data parsing, control command issuance, task result reporting |
-| winterhack_interfaces     | Custom ROS2 interfaces: including custom messages/services/actions for task commands, status feedback, sensor data, etc. |
-
-## 5. Common Problem Solving
-### 5.1 Script Execution Prompts "Insufficient Permissions"
+### Action Server Commands
+Exercise core action servers (launched via `winterhack.launch.py`) to test pick/drop/locate behaviour:
 ```bash
-chmod +x *.sh  # Add execution permission to all scripts
+# Test Pick action
+ros2 action send_goal /pick winterhack_interfaces/action/Pick "{}"
+
+# Test Drop action
+ros2 action send_goal /drop winterhack_interfaces/action/Drop "{}"
+
+# Test Locate action (with color priority)
+ros2 action send_goal /locate winterhack_interfaces/action/Locate "{}"
+ros2 param get /locate color_priority
+ros2 param set /locate color_priority "['RED']"
 ```
 
-### 5.2 Compilation Error "Cannot Find xxx Package/Header File"
+## Running WinterHack Challenge Missions
+### Challenge 1: Known-coordinate Rescue (Efficiency-Driven)
+#### Objective
+Rescue all three target blocks (RED, BLUE, YELLOW) from known coordinates provided in advance, and deposit them into the home drop zone. No search or exploration is required.
+#### Engineering Emphasis
+- Global and local path-planning optimisation
+- Efficient navigation and localisation
+- Reliable pick-and-place manipulation
+- Efficient task sequencing
+
+#### Step 1: Launch Challenge 1 Gazebo World
 ```bash
-# Complete all dependencies
-rosdep install --from-paths src --ignore-src -r -y
-# Recompile
-colcon build --symlink-install --packages-select <error-package-name>
+ros2 launch robot_gazebo worlds.launch.py world_name:=challenge1_world
+```
+#### Step 2: Launch WinterHack (Challenge 1 Config)
+```bash
+ros2 launch winterhack winterhack.launch.py challenge_mode:=challenge1
+```
+#### Step 3: Run Challenge 1 Mission Runner
+```bash
+ros2 run winterhack mission_runner --ros-args -p challenge_mode:=challenge1
+```
+#### Demo Video (Challenge 1)
+<p align="center">
+  <video width="800" controls>
+    <source src="./media/demo1.mp4" type="video/mp4">
+    Your browser does not support the video tag. Download the video: <a href="./media/demo1.mp4">challenge1_demo.mp4</a>
+  </video>
+</p>
+*Demo Notes: The video demonstrates the robot completing efficient rescue of RED/BLUE/YELLOW blocks from pre-defined coordinates, with optimised path planning and task sequencing.*
+
+### Challenge 2: Priority-Order Rescue (Decision-Driven)
+#### Objective
+Rescue all three target blocks in the strict order RED → BLUE → YELLOW, regardless of their spatial distribution within the maze, and deposit them into the home drop zone.
+#### Engineering Emphasis
+- Efficient search and perception
+- Task sequencing and symbolic decision-making
+- Robust state management
+- Reliable autonomy under ordering constraints
+
+#### Step 1: Launch Challenge 2 Gazebo World
+```bash
+ros2 launch robot_gazebo worlds.launch.py world_name:=challenge2_world
+```
+#### Step 2: Launch WinterHack (Challenge 2 Config)
+```bash
+ros2 launch winterhack winterhack.launch.py challenge_mode:=challenge2
+```
+#### Step 3: Run Challenge 2 Mission Runner
+```bash
+ros2 run winterhack mission_runner --ros-args -p challenge_mode:=challenge2
+```
+#### Demo Video (Challenge 2)
+<p align="center">
+  <video width="800" controls>
+    <source src="./media/demo2.mp4" type="video/mp4">
+    Your browser does not support the video tag. Download the video: <a href="./media/demo2.mp4">challenge2_demo.mp4</a>
+  </video>
+</p>
+*Demo Notes: The video shows the robot autonomously searching for randomly distributed blocks, adhering to the RED→BLUE→YELLOW priority order, with robust state management and decision-making.*
+
+## Kill ROS Processes
+Stops existing ROS/Gazebo processes before relaunching to avoid conflicts like multiple action servers or duplicate topic publishers.
+```bash
+# One-time setup to make the script executable
+chmod +x killros.sh
+
+# Terminate running ROS/Gazebo processes
+./killros.sh
 ```
 
-### 5.3 Gazebo Launches with No Robot/Blank Scene
-- Check the launch files under `robot_gazebo/launch/` to ensure the URDF/world file paths are correct;
-- Execute `source install/setup.bash` and restart Gazebo;
-- Check the Gazebo model path: `echo $GAZEBO_MODEL_PATH` to ensure it includes the robot model directory.
+## Summary
+### Core Workflow
+1. Start with a base simulation world (`robocup_home`/`winterhack_maze`) to validate core manipulation/navigation.
+2. Bring up the WinterHack stack via `winterhack.launch.py` (specify `robot_mode` for sim/real).
+3. Run the `mission_runner` to test end-to-end core behaviour.
 
-### 5.4 ROS2 Node Communication Abnormal (No Data on Topics/Service Call Failure)
-- All terminals must execute `source install/setup.bash`;
-- Check the `ROS_DOMAIN_ID` environment variable to ensure all nodes are in the same domain;
-- Use `ros2 node list`/`ros2 topic list` to confirm nodes/topics are started correctly.
+### Challenge-Specific Workflow
+1. Launch the challenge-specific Gazebo world (`challenge1_world`/`challenge2_world`).
+2. Launch the WinterHack stack with `challenge_mode` set to the target challenge.
+3. Run the `mission_runner` with the corresponding `challenge_mode` parameter to execute the challenge mission.
 
-## 6. Development Specifications
-1. **Package Management**: Prioritize extending existing packages for new functions; if a new package needs to be created, follow ROS2 naming conventions (lowercase + underscore);
-2. **Interface Specifications**: All custom messages/services/actions are uniformly placed in the `winterhack_interfaces` package, and recompilation is required after modification;
-3. **Script Specifications**: New launch scripts follow the existing naming rules (numeric prefix + function description) and add comments to explain the purpose;
-4. **Compilation Optimization**: Use `colcon build --symlink-install` during development, and use Release compilation for release:
-   ```bash
-   colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
-   ```
-5. **Code Submission**: Ensure no compilation warnings and core functions run normally before submission.
-
-## 7. License
-This repository is only used for WinterHack competition/project development, and all rights are reserved by the project team. Unauthorized modification and distribution are prohibited.
-
-## 8. Contact Information
-For technical issues, contact the project maintainer: <your-email/contact-information>
+Use action/parameter commands to test individual Pick/Drop/Locate behaviours, and run the `killros.sh` script to reset ROS/Gazebo before re-running demos/challenges.
